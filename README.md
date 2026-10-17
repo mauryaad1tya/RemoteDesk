@@ -1,36 +1,48 @@
-# RemoteDesk 🖥️📱
+# RemoteDesk
 
-> **Private Remote Windows Laptop Management & Remote Access System**
-> Securely monitor, manage, and access your personal Windows laptop from your smartphone or browser over the internet across any network.
+A self-hosted web dashboard and background agent for managing and monitoring a Windows laptop remotely from a phone or secondary device.
 
----
-
-## 🌟 Key Features
-
-- **📱 Mobile-First Responsive Dashboard**: Clean dark-mode interface built with React, Vite, Tailwind CSS, and Lucide icons.
-- **⚡ Real-Time Hardware Telemetry**: Live CPU load, RAM usage, storage volumes, battery level, charging status, and network counters via WebSockets.
-- **📁 Secure Remote File Manager**: Browse permitted directories, upload, download, create folders, rename, and delete with anti-traversal sandboxing.
-- **🚀 Approved Application Launcher**: Launch approved Windows programs (Notepad, Calculator, Explorer, etc.) with PID tracking and zero arbitrary command injection.
-- **🛡️ Restricted Command Console**: Execute pre-authorized system operations (Query System Info, Process Manager, Disk Check, Network Connectivity) with terminal output.
-- **📸 On-Demand Desktop Screenshots**: Capture high-resolution display snapshots with instant preview and download.
-- **⚡ Controlled Power Operations**: Safely lock workstation, transition to sleep, restart, or power off with explicit safety confirmations.
-- **🌐 Private Mesh Networking**: Tailscale WireGuard integration allows seamless connection over cellular data with **zero router port forwarding** and **zero open public ports**.
-- **📋 Immutable Audit Trail**: Comprehensive audit logging for all authentication attempts, file transfers, app launches, and power commands.
+It is designed to run over private networks (like Tailscale or LAN), allowing you to check system stats, transfer files, launch apps, take screenshots, or restart the machine without port-forwarding or exposing Windows RDP to the open internet.
 
 ---
 
-## 🏗️ Architecture & Monorepo Structure
+## Why this exists
+
+Most remote access tools either require opening ports to the public internet (which is dangerous for RDP), or rely on third-party cloud brokers where you don't control the server or data.
+
+RemoteDesk uses a simple client-server architecture:
+1. An **Express API + WebSocket server** with SQLite for local state, sessions, and audit logs.
+2. A lightweight **Windows Agent** running locally that makes an outbound connection to the server, so your laptop never needs an open incoming port.
+3. A mobile-friendly **React dashboard** for checking hardware stats and triggering tasks from your phone browser.
+
+When paired with a private mesh VPN like Tailscale, you get access over mobile data or foreign Wi-Fi with end-to-end WireGuard encryption.
+
+---
+
+## Features
+
+- **System Telemetry**: Real-time CPU, RAM, disk usage, battery status, and uptime streamed over WebSockets.
+- **Remote File Manager**: Browse permitted directories, download files, upload documents, and manage folders. Path traversal attacks outside configured roots are blocked.
+- **Application Launcher**: Start pre-approved programs (Notepad, Calculator, Explorer, etc.) with PID tracking. Arbitrary command injection is disallowed.
+- **Restricted Command Console**: Run fixed diagnostic operations (system info, running processes, disk usage, network ping) with live terminal output.
+- **On-Demand Screenshots**: Capture display snapshots directly from the web interface.
+- **Power Management**: Workstation lock, sleep, restart, and shutdown with explicit confirmation prompts.
+- **Audit Logging**: Keeps an immutable log of login attempts, file operations, app launches, and power commands.
+
+---
+
+## Project Structure
 
 ```
 remotedesk/
 ├── apps/
-│   └── web/            # React 18 + Vite + Tailwind CSS dashboard
+│   └── web/            # React 18, Vite, Tailwind CSS dashboard
 ├── services/
-│   └── api/            # Express + TypeScript + SQLite + Socket.IO server
-├── agent/              # Windows Agent service for system control
+│   └── api/            # Express, native node:sqlite, Socket.IO, JWT auth
+├── agent/              # Windows agent process (system metrics, files, power)
 ├── packages/
-│   └── shared/         # Zod schemas, constants, and TypeScript types
-├── docs/               # System architecture and setup guides
+│   └── shared/         # Shared schemas (Zod), types, and socket event constants
+├── docs/               # Detailed documentation
 │   ├── ARCHITECTURE.md
 │   ├── SETUP.md
 │   ├── SECURITY.md
@@ -38,79 +50,98 @@ remotedesk/
 │   ├── WINDOWS_AGENT.md
 │   ├── REMOTE_ACCESS.md
 │   └── TROUBLESHOOTING.md
-├── .env.example
-├── package.json
-└── README.md
+├── start-remotedesk.bat # One-click Windows launcher
+└── package.json
 ```
 
 ---
 
-## 🚀 Quick Start
+## Getting Started
 
-### 1. Prerequisites
-- Windows 10/11 (64-bit)
-- Node.js LTS (v22+ or v24+)
-- npm (v10+ or v11+)
+### Prerequisites
 
-### 2. Installation & Database Setup
+- Windows 10 or 11 (64-bit)
+- Node.js LTS (v22 or v24 recommended)
+- npm v10+
+
+### 1. Installation
+
 ```bash
-# Clone the repository
 git clone https://github.com/mauryaad1tya/RemoteDesk.git
 cd RemoteDesk
 
-# Install dependencies across all packages
+# Install dependencies across all monorepo packages
 npm install
 
-# Setup environment variables
+# Create local environment config
 copy .env.example .env
 
-# Run SQLite migrations and seed initial admin user & allowlists
+# Initialize database schema and default admin account
 npm run db:seed
 ```
 
-### 3. Launch Services
-```bash
-# Terminal 1: Start API Backend (Port 4000)
-npm run dev:api
-
-# Terminal 2: Start Web Frontend (Port 5173)
-npm run dev:web
-
-# Terminal 3: Start Windows Agent
-npm run dev:agent
-```
-
-Open `http://localhost:5173` on your browser and sign in with default credentials:
+Default credentials created by `npm run db:seed`:
 - **Email**: `admin@remotedesk.local`
 - **Password**: `RemoteDesk@Admin2025!`
 
+### 2. Running the Application
+
+You can start everything in a single step using the provided launcher:
+
+**Option A — Windows Batch File (Recommended):**
+Double-click `start-remotedesk.bat`, or run from PowerShell:
+```cmd
+.\start-remotedesk.bat
+```
+This boots the API (port 4000), Vite frontend (port 5173), and the background agent concurrently in one terminal, and opens your browser automatically.
+
+**Option B — npm:**
+```bash
+npm run dev
+```
+
 ---
 
-## 🧪 Testing
+## Remote Access (Phone / Outside Home)
 
-All test suites can be executed across the monorepo with:
+To access your laptop from your phone over mobile data or another Wi-Fi network:
+
+1. Install [Tailscale](https://tailscale.com) on both your laptop and phone, and sign in with the same account.
+2. Get your laptop's Tailscale IP (e.g. `100.x.y.z`).
+3. Open your mobile browser and navigate to:
+   ```
+   http://100.x.y.z:5173
+   ```
+4. Log in and manage your machine securely.
+
+See [docs/REMOTE_ACCESS.md](docs/REMOTE_ACCESS.md) for detailed configuration, including setting up Microsoft Remote Desktop (RD Client) over Tailscale.
+
+---
+
+## Development & Testing
 
 ```bash
-# Run all unit, integration, and E2E tests
+# Run unit and integration tests across all packages
 npm run test
 
-# Run build verification for all packages
+# Typecheck and build production bundles
 npm run build
 ```
 
 ---
 
-## 📖 Documentation Links
+## Documentation
 
-- [Architecture Guide](docs/ARCHITECTURE.md)
-- [Setup & Getting Started](docs/SETUP.md)
-- [Security Model & Policies](docs/SECURITY.md)
+- [Architecture & Data Flow](docs/ARCHITECTURE.md)
+- [Step-by-Step Setup Guide](docs/SETUP.md)
+- [Security Model & Path Sandboxing](docs/SECURITY.md)
 - [REST API & WebSocket Contract](docs/API.md)
-- [Windows Agent Guide](docs/WINDOWS_AGENT.md)
-- [Remote Access via Tailscale](docs/REMOTE_ACCESS.md)
+- [Windows Agent Internals](docs/WINDOWS_AGENT.md)
+- [Remote Access & Tailscale Setup](docs/REMOTE_ACCESS.md)
 - [Troubleshooting Common Issues](docs/TROUBLESHOOTING.md)
 
 ---
 
-## 📜 License
-MIT License. Built for secure personal laptop management.
+## License
+
+MIT
