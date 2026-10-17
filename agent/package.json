@@ -1,0 +1,30 @@
+{
+  "name": "@remotedesk/agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@remotedesk/shared": "*",
+    "dotenv": "^16.4.7",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "socket.io-client": "^4.8.1",
+    "systeminformation": "^5.25.11",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.6"
+  }
+}

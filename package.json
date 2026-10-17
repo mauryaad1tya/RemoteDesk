@@ -1,0 +1,28 @@
+{
+  "name": "remotedesk-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remote Windows Laptop Management System",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*",
+    "agent"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -p \"[{name}]\" -n \"API,WEB,AGENT\" -c \"cyan,magenta,green\" \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:agent\"",
+    "dev:all": "npm run dev",
+    "dev:api": "npm run dev -w services/api",
+    "dev:agent": "npm run dev -w agent",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:migrate": "npm run db:migrate -w services/api",
+    "db:seed": "npm run db:seed -w services/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}
